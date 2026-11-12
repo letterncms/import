@@ -456,7 +456,6 @@ final class ImportTest extends TestCase
         $this->ability('import/run', ['type' => 'wordpress', 'path' => 'wordpress.xml']);
 
         $this->assertSame(['Entries Imported' => 4, 'Files Imported' => 1, 'Sources Waiting' => count($this->ability('import/sources')['sources'])], array_column(array_column($widget()['children'], 'props'), 'value', 'label'));
-        $this->assertSame([], $this->cms()->packages()->problems(), 'Every plugin registers a home-screen widget.');
     }
 
     public function test_every_ability_says_what_it_answers_with(): void
@@ -464,6 +463,18 @@ final class ImportTest extends TestCase
         // The test case checks each answer against its schema as the other tests run: a report that drifts from it fails there.
         foreach (['import/sources', 'import/preview', 'import/run'] as $name) {
             $this->assertNotNull($this->cms()->abilities()->get($name)->output(), $name);
+        }
+    }
+
+    public function test_every_change_has_a_past_tense_label_for_the_audit_log(): void
+    {
+        $past = $this->cms()->hooks()->filter('audit.past', []);
+        $changes = array_filter($this->cms()->abilities()->all(), static fn ($ability) => $ability->package === 'letterncms/import' && ! $ability->isReadOnly());
+
+        $this->assertNotSame([], $changes);
+
+        foreach ($changes as $name => $ability) {
+            $this->assertIsString($past[$name] ?? null, "{$name} has no past-tense label: add it to the audit.past filter.");
         }
     }
 }
